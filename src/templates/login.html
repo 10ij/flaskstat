@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - FlaskStat</title>
+    <!-- Pico CSS (Classless version) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.classless.min.css">
+    <style>
+        /* Small layout adjustments for the login box */
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        main {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-card {
+            border: 1px solid var(--pico-muted-border-color);
+            padding: 2.5rem 2rem;
+            border-radius: var(--pico-border-radius);
+            background: var(--pico-card-background-color);
+            box-shadow: var(--pico-card-box-shadow);
+            text-align: center;
+        }
+
+        .oidc-icon {
+            margin-bottom: 1.5rem;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+
+    <main>
+        <header>
+            <h1>FlaskStat</h1>
+        </header>
+
+        <article class="login-card">
+            <div class="oidc-icon">
+                <!-- Simple SVG Shield Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            
+            <p>Authentication is required to access the dashboard.</p>
+
+            <form method="get" action="{{ url_for('login') }}">
+                <button type="submit" class="contrast">
+                    Continue with {{ name }}
+                </button>
+            </form>
+        </article>
+
+        <footer style="text-align: center; font-size: 0.8rem; opacity: 0.6; margin-top: 2rem;">
+            &copy; {{ current_year }} ismail1234j
+        </footer>
+    </main>
+
+</body>
+</html>

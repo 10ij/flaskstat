@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Host Monitor - FlaskStat</title>
+    <!-- Tailwind CSS for modern responsive utilities -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Smooth transitions for progress bars */
+        progress::-webkit-progress-value {
+            transition: width 0.5s ease-in-out;
+        }
+
+        /* Custom scrollbar for table containers */
+        .overflow-auto::-webkit-scrollbar {
+            height: 4px;
+        }
+        .overflow-auto::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        /* Mobile specific padding to avoid bottom nav overlap */
+        @media (max-width: 768px) {
+            main {
+                padding-bottom: 80px;
+            }
+        }
+
+        /* Smooth value transitions */
+        .stat-value {
+            transition: all 0.3s ease-in-out;
+        }
+
+        .progress-bar {
+            transition: width 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+
+    <!-- Header / Top Nav -->
+    <header class="sticky top-0 z-30 w-full bg-white/80 backdrop-blur-md border-b border-slate-200">
+        <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="bg-blue-600 p-1.5 rounded-lg text-white">
+                    <i data-lucide="activity" class="w-5 h-5"></i>
+                </div>
+                <h1 class="text-lg font-bold tracking-tight">FlaskStat <span class="hidden sm:inline text-slate-400 font-normal">Dashboard</span></h1>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <button onclick="location.reload()" class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors" title="Refresh">
+                    <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                </button>
+                <a href="/logout" class="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
+                    <i data-lucide="log-out" class="w-4 h-4"></i> Logout
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+        
+        <!-- Quick Stats Cards -->
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- CPU Card -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center text-center">
+                <div class="flex items-center justify-between w-full mb-4">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400">CPU Usage</span>
+                    <i data-lucide="cpu" class="w-5 h-5 text-blue-500"></i>
+                </div>
+                <div id="cpu-value" class="stat-value text-4xl font-extrabold text-slate-800 mb-2">--</div>
+                <div class="w-full bg-slate-100 rounded-full h-2.5 mb-1">
+                    <div id="cpu-bar" class="progress-bar bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Memory Card -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center text-center">
+                <div class="flex items-center justify-between w-full mb-4">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Memory Usage</span>
+                    <i data-lucide="database" class="w-5 h-5 text-purple-500"></i>
+                </div>
+                <div id="mem-value" class="stat-value text-4xl font-extrabold text-slate-800 mb-2">--</div>
+                <div class="w-full bg-slate-100 rounded-full h-2.5 mb-1">
+                    <div id="mem-bar" class="progress-bar bg-purple-600 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+                <p id="mem-detail" class="text-xs text-slate-500 mt-2">-- MB / -- MB</p>
+            </div>
+        </section>
+
+        <!-- Details Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            <!-- Disks Section -->
+            <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <header class="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+                    <i data-lucide="hard-drive" class="w-5 h-5 text-slate-400"></i>
+                    <h2 class="font-semibold text-slate-800">Disk Storage</h2>
+                </header>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 text-slate-500 font-medium">
+                            <tr>
+                                <th class="px-6 py-3">Mount</th>
+                                <th class="px-6 py-3">Usage</th>
+                            </tr>
+                        </thead>
+                        <tbody id="disk-tbody" class="divide-y divide-slate-100">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Top Processes Section -->
+            <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <header class="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+                    <i data-lucide="list" class="w-5 h-5 text-slate-400"></i>
+                    <h2 class="font-semibold text-slate-800">Top Processes</h2>
+                </header>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 text-slate-500 font-medium">
+                            <tr>
+                                <th class="px-6 py-3">PID</th>
+                                <th class="px-6 py-3">Process</th>
+                                <th class="px-6 py-3 text-right">RSS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="procs-tbody" class="divide-y divide-slate-100">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <footer class="text-center py-8">
+            <p class="text-xs text-slate-400 font-medium">&copy; 2024 ismail1234j • v1.0.2</p>
+        </footer>
+    </main>
+
+    <!-- Mobile Bottom Navigation (Only visible on small screens) -->
+    <nav class="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 flex justify-between items-center z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+        <button onclick="location.reload()" class="flex flex-col items-center gap-1 text-blue-600">
+            <i data-lucide="layout-dashboard" class="w-6 h-6"></i>
+            <span class="text-[10px] font-bold uppercase">Stats</span>
+        </button>
+        <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="flex flex-col items-center gap-1 text-slate-400">
+            <i data-lucide="arrow-up-circle" class="w-6 h-6"></i>
+            <span class="text-[10px] font-bold uppercase">Top</span>
+        </button>
+        <a href="/logout" class="flex flex-col items-center gap-1 text-red-500">
+            <i data-lucide="log-out" class="w-6 h-6"></i>
+            <span class="text-[10px] font-bold uppercase">Exit</span>
+        </a>
+    </nav>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Update stats from API
+        async function updateStats() {
+            try {
+                const response = await fetch('/api/stats');
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = '/';
+                    }
+                    return;
+                }
+                const stats = await response.json();
+                updateUI(stats);
+            } catch (error) {
+                console.error('Failed to fetch stats:', error);
+            }
+        }
+
+        function updateUI(stats) {
+            // Update CPU
+            const cpuPct = stats.cpu.pct;
+            document.getElementById('cpu-value').textContent = cpuPct + '%';
+            document.getElementById('cpu-bar').style.width = cpuPct + '%';
+
+            // Update Memory
+            const memPct = stats.memory.pct;
+            document.getElementById('mem-value').textContent = memPct + '%';
+            document.getElementById('mem-bar').style.width = memPct + '%';
+            document.getElementById('mem-detail').textContent = 
+                `${stats.memory.used_mb} MB / ${stats.memory.total_mb} MB`;
+
+            // Update Disk Storage
+            updateDiskTable(stats.disk);
+
+            // Update Processes
+            updateProcessTable(stats.top_processes);
+        }
+
+        function updateDiskTable(disks) {
+            const tbody = document.getElementById('disk-tbody');
+            tbody.innerHTML = '';
+
+            for (const [mount, diskInfo] of Object.entries(disks)) {
+                if (!diskInfo.exists) continue;
+
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-slate-50 transition-colors';
+
+                let colorClass = 'bg-emerald-500';
+                if (diskInfo.used_pct >= 85) {
+                    colorClass = 'bg-red-500';
+                } else if (diskInfo.used_pct >= 70) {
+                    colorClass = 'bg-orange-500';
+                }
+
+                const pctDisplay = diskInfo.used_pct !== null ? diskInfo.used_pct + '%' : 'N/A';
+                const barWidth = diskInfo.used_pct !== null ? diskInfo.used_pct + '%' : '0%';
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 font-mono text-xs font-semibold">${mount}</td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="flex-1 bg-slate-100 rounded-full h-2 min-w-[100px]">
+                                <div class="progress-bar ${colorClass} h-2 rounded-full" style="width: ${barWidth}"></div>
+                            </div>
+                            <span class="text-slate-600 tabular-nums">${pctDisplay}</span>
+                        </div>
+                    </td>
+                `;
+
+                tbody.appendChild(row);
+            }
+        }
+
+        function updateProcessTable(processes) {
+            const tbody = document.getElementById('procs-tbody');
+            tbody.innerHTML = '';
+
+            processes.forEach(proc => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-slate-50 transition-colors';
+                row.innerHTML = `
+                    <td class="px-6 py-4 text-slate-400">${proc.pid}</td>
+                    <td class="px-6 py-4 font-medium text-blue-600 truncate max-w-[150px]">${proc.name}</td>
+                    <td class="px-6 py-4 text-right tabular-nums">${proc.rss_mb} MB</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Initial load
+        updateStats();
+
+        // Poll for updates every 2 seconds
+        setInterval(updateStats, 2000);
+    </script>
+</body>
+</html>

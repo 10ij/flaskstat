@@ -22,7 +22,7 @@ docker-compose up --build
 ```compose.yml
 services:
   monitor:
-    build: .
+    image: ghcr.io/10ij/flaskstat:latest
     container_name: flaskstat
     ports:
       - "84:8080"
